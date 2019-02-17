@@ -1,5 +1,3 @@
-#### Yet another distributed reddit:
-
 ![](diagram.png)
 
 1. JS on `comntr.io` uses WebTorrent DHT to discover servers seeding `SHA1("reddit")`.

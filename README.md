@@ -39,7 +39,8 @@ Call flow:
 
 1. The extension grabs the tab URL and gives it to the client.
    The URL is given in the fragment part because there is no need
-   to send it to the server:
+   to send it to the server. The URL itself isn't used; only
+   its hash is used.
     ```
     client5.github.io/#<URL>
     ```
@@ -47,7 +48,9 @@ Call flow:
    servers in the network. It uses the hardcoded network id as the
    DHT key:
     ```
-    ipfs dht findprovs <network-id>
+    for prov in $(ipfs dht findprovs <network-id>); do
+      timeout 3 ipfs dht findpeer $prov;
+    done
     ```
    The DHT finds 2 servers and returns their IP addresses and ports:
     ```

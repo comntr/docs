@@ -22,7 +22,7 @@
       +----------+
 ```
 
-Terminology:
+### Terminology
 
 - `client` is a JS-only site that runs a IPFS node, talks to
   the `servers` and displays the comments. This site can be
@@ -32,10 +32,10 @@ Terminology:
   node and stores comments posted by the `clients`. The `server`
   publishes its IP address and port to the DHT using the
   hardcoded `network-id` DHT key.
-- `network-id` is a random 256-bit value used as the DHT key
+- `network-id` is a random 192/256-bit value used as the DHT key
   to make `servers` discoverable by `clients` and other `servers`.
 
-Call flow:
+### Call Flow
 
 1. The extension grabs the tab URL and gives it to the client.
    The URL is given in the fragment part because there is no need
@@ -64,6 +64,5 @@ Call flow:
 5. The client gets files for `<folder-id>` from IPFS.
 6. Server 2 uses the DHT to find other servers.
 7. Server 2 sends a `GET /` to server 1 to get a IPFS folder id for
-   all the comments for all the URLs it knows. This is how servers
-   sync comments between each other.
+   all the comments for all the URLs it knows.
 

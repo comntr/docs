@@ -33,12 +33,9 @@
 - `network-id` is a random 192/256-bit value used as the DHT key
   to make `servers` discoverable by `clients` and other `servers`.
 
-1. The extension grabs the tab URL and gives it to the client.
-   The URL is given in the fragment part because there is no need
-   to send it to the server. The URL itself isn't used; only
-   its hash is used.
+1. The extension grabs the tab URL and gives its hash to the client:
     ```
-    client5.github.io/#<URL>
+    client5.github.io/#<url-hash>
     ```
 2. The client uses the DHT (WebTorrent DHT or IPFS DHT) to find
    servers in the network. It uses the hardcoded network id as the
@@ -53,10 +50,10 @@
     [server 1] 11.22.33.44:12345
     [server 2] 22.33.44.55:54321
     ```
-3. The client sends a `GET /hash(URL)` to server 1 to get comments
+3. The client sends a `GET /<url-hash>` to server 1 to get comments
    for this URL. The server uses `ipfs add` to publish the folder
    with comments to IPFS and returns the `<folder-id>`.
-4. The client sends a `POST /hash(URL)` to add a comment for the URL.
+4. The client sends a `POST /<url-hash>` to add a comment for the URL.
 5. The client gets files for `<folder-id>` from IPFS.
 6. Server 2 uses the DHT to find other servers.
 7. Server 2 sends a `GET /` to server 1 to get a IPFS folder id for
@@ -85,12 +82,15 @@
     3.|      | watcher |
       |      +---------+
       v
-+-------------+  
-| ipfs daemon | 
-+-------------+
++-------------+  +------+
+| ipfs daemon |  | sync |
++-------------+  +------+
+      ^              |
+      |      5.      |
+      +--------------+
 ```
 
-The `server` or VPS consists of 4 processes:
+The `server` or VPS consists of a few processes:
 
 - The `http server` process listens on a certain port and accepts
   the `GET` and `POST` requests from the `clients`. It doesn't do
@@ -104,6 +104,9 @@ The `server` or VPS consists of 4 processes:
 - The `watcher` process keeps an eye on all the other processes and
   restarts them if needed. This especially applies to the IPFS
   daemon that tends to leak memory.
+- `sync` is the process that connects to other `servers` and pulls
+  comments from them. It uses the DHT to discover other `servers`
+  and uses IPFS to get comments.
 
 1. The `client` sends a `GET` request to fetch comments for a URL.
 2. The `http server` forwards the `GET` to the `HTTP GET` handler.
@@ -112,3 +115,5 @@ The `server` or VPS consists of 4 processes:
 4. If the `client` sends a `POST` request to add a comment, the
    request is processed by the `HTTP POST` handler that creates a
    file with this comment. It doesn't need access to the IPFS daemon.
+5. The `sync` process uses the DHT to find other `servers`, sends
+   `GET /` to them and uses IPFS to download comments.

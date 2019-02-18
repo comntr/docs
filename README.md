@@ -22,8 +22,6 @@
       +----------+
 ```
 
-### Terminology
-
 - `client` is a JS-only site that runs a IPFS node, talks to
   the `servers` and displays the comments. This site can be
   hosted on `github.io` since it doesn't have any server-side
@@ -35,8 +33,6 @@
 - `network-id` is a random 192/256-bit value used as the DHT key
   to make `servers` discoverable by `clients` and other `servers`.
 
-### Call Flow
-
 1. The extension grabs the tab URL and gives it to the client.
    The URL is given in the fragment part because there is no need
    to send it to the server. The URL itself isn't used; only
@@ -47,8 +43,8 @@
 2. The client uses the DHT (WebTorrent DHT or IPFS DHT) to find
    servers in the network. It uses the hardcoded network id as the
    DHT key:
-    ```
-    for prov in $(ipfs dht findprovs <network-id>); do
+    ```bash
+    for prov in $(ipfs dht findprovs $networkid); do
       timeout 3 ipfs dht findpeer $prov;
     done
     ```
@@ -66,3 +62,53 @@
 7. Server 2 sends a `GET /` to server 1 to get a IPFS folder id for
    all the comments for all the URLs it knows.
 
+
+```
+  +--------+
+  | client |           Web
+  +--------+
+      |
+--- 1.| -------------------
+      v
++-------------+
+| http server |        VPS
++-------------+
+      |    |
+    2.|    +--------+
+      |           4.|
+      v             v
++----------+ +-----------+
+| HTTP GET | | HTTP POST |
++----------+ +-----------+
+      |
+      |      +---------+
+    3.|      | watcher |
+      |      +---------+
+      v
++-------------+  
+| ipfs daemon | 
++-------------+
+```
+
+The `server` or VPS consists of 4 processes:
+
+- The `http server` process listens on a certain port and accepts
+  the `GET` and `POST` requests from the `clients`. It doesn't do
+  the work, but rather forwards requests to the designated handlers.
+- The `HTTP GET` handler is a process that works on the `GET`
+  requests. It runs the `ipfs add` command that can be slow sometimes.
+- The `HTTP POST` handler is a process that works on the `POST`
+  requests. It creates files with new comments and doesn't need to
+  use IPFS commands.
+- `ipfs daemon` runs in its own process.
+- The `watcher` process keeps an eye on all the other processes and
+  restarts them if needed. This especially applies to the IPFS
+  daemon that tends to leak memory.
+
+1. The `client` sends a `GET` request to fetch comments for a URL.
+2. The `http server` forwards the `GET` to the `HTTP GET` handler.
+3. The `HTTP GET` handler runs `ipfs add` to generate a IPFS folder
+   id for the comments.
+4. If the `client` sends a `POST` request to add a comment, the
+   request is processed by the `HTTP POST` handler that creates a
+   file with this comment. It doesn't need access to the IPFS daemon.
